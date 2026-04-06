@@ -3,6 +3,7 @@ import { JSDOM } from 'jsdom';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as vm from 'vm';
+import * as nodeCrypto from 'crypto';
 
 export interface RuntimeOptions {
   manifest: any;
@@ -27,6 +28,7 @@ export class SkyStreamRuntime {
       },
       http_get: async (url: string, headers: any, cb: any) => {
         try {
+          console.log(`[Runtime HTTP] GET ${url}`, JSON.stringify(headers));
           const res = await axios.get(url, { headers: headers || {} });
           const body = typeof res.data === 'string' ? res.data : JSON.stringify(res.data);
           const result = { status: res.status, statusCode: res.status, body, headers: res.headers };
@@ -65,8 +67,28 @@ export class SkyStreamRuntime {
         return "mock_token";
       },
       crypto: {
-        decryptAES: (data: string, key: string, iv: string) => {
-          return "decrypted(" + data + ")";
+        decryptAES: (dataB64: string, keyB64: string, ivB64: string, options?: any) => {
+          const mode = (options?.mode || 'cbc').toLowerCase();
+          const key = Buffer.from(keyB64, 'base64');
+          const iv = Buffer.from(ivB64, 'base64');
+          const data = Buffer.from(dataB64, 'base64');
+
+          if (mode === 'gcm') {
+            const tag = data.slice(data.length - 16);
+            const ciphertext = data.slice(0, data.length - 16);
+            
+            const decipher = nodeCrypto.createDecipheriv('aes-256-gcm', key, iv);
+            decipher.setAuthTag(tag);
+            return decipher.update(ciphertext, undefined, 'utf8') + decipher.final('utf8');
+          } else {
+            const decipher = nodeCrypto.createDecipheriv('aes-256-cbc', key, iv);
+            return decipher.update(data, undefined, 'utf8') + decipher.final('utf8');
+          }
+        },
+        pbkdf2: (password: string, saltB64: string, iterations: number, keyLength: number) => {
+          const salt = Buffer.from(saltB64, 'base64');
+          const key = nodeCrypto.pbkdf2Sync(password, salt, iterations || 10000, keyLength || 32, 'sha256');
+          return key.toString('base64');
         }
       },
       Actor: class Actor {

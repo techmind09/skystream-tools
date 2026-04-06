@@ -15,7 +15,7 @@ const program = new Command();
 program
   .name('skystream')
   .description('SkyStream Plugin Development Kit CLI (Sky Gen 2)')
-  .version('1.5.7');
+  .version('1.5.9');
 
 // Schemas
 const pluginSchema = z.object({
@@ -495,7 +495,15 @@ program.command('test')
           if (!Object.keys(finalHeaders).some(k => k.toLowerCase() === 'user-agent')) {
             finalHeaders['User-Agent'] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36";
           }
-          const res = await axios.get(url, { headers: finalHeaders, method: 'GET' });
+          if (!Object.keys(finalHeaders).some(k => k.toLowerCase() === 'accept-encoding')) {
+            finalHeaders['Accept-Encoding'] = 'identity';
+          }
+          const res = await axios.get(url, { 
+            headers: finalHeaders, 
+            method: 'GET',
+            decompress: false,
+            responseType: 'text'
+          });
           const body = typeof res.data === 'string' ? res.data : JSON.stringify(res.data);
           const response = { status: res.status, statusCode: res.status, body, headers: res.headers };
           if (cb) cb(response);
@@ -581,11 +589,6 @@ program.command('test')
           }
         }
         return '';
-      },
-      crypto: {
-        decryptAES: async (data: string, key: string, iv: string) => {
-          return context.sendMessage('crypto_decrypt_aes', JSON.stringify({ data, key, iv }));
-        }
       },
       globalThis: {} as any,
     };
@@ -674,10 +677,44 @@ program.command('test')
          getRegion: function() { return "US"; }
       };
 
+      // Standard App Bridge Mock
       globalThis.crypto = {
         md5: function(s) { return __crypto__.createHash('md5').update(s).digest('hex'); },
         b64encode: function(s) { return Buffer.from(s).toString('base64'); },
-        b64decode: function(s) { return Buffer.from(s, 'base64').toString('utf8'); }
+        b64decode: function(s) { return Buffer.from(s, 'base64').toString('utf8'); },
+        pbkdf2: async function(password, salt, iterations, keyLength) {
+          // salt can be string or base64
+          const saltBuf = (salt && salt.length % 4 === 0 && /^[A-Za-z0-9+/=]+$/.test(salt)) 
+            ? Buffer.from(salt, 'base64') 
+            : Buffer.from(salt, 'utf8');
+          
+          return new Promise((resolve, reject) => {
+            __crypto__.pbkdf2(password, saltBuf, iterations || 10000, keyLength || 32, 'sha256', (err, derivedKey) => {
+              if (err) reject(err);
+              else resolve(derivedKey.toString('base64'));
+            });
+          });
+        },
+        decryptAES: async function(dataB64, keyB64, ivB64, options) {
+          const mode = (options?.mode || 'cbc').toLowerCase();
+          const key = Buffer.from(keyB64, 'base64');
+          const iv = Buffer.from(ivB64, 'base64');
+          const data = Buffer.from(dataB64, 'base64');
+
+          if (mode === 'gcm') {
+            // In Node.js, the tag is usually at the end of the ciphertext buffer in some contexts,
+            // but createDecipheriv expects it to be set separately via setAuthTag.
+            // Our plugin.js appends the tag to the ciphertext: combined.set(tag, ciphertext.length);
+            const tag = data.slice(data.length - 16);
+            const ciphertext = data.slice(0, data.length - 16);
+            const decipher = __crypto__.createDecipheriv('aes-256-gcm', key, iv);
+            decipher.setAuthTag(tag);
+            return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
+          } else {
+            const decipher = __crypto__.createDecipheriv('aes-256-cbc', key, iv);
+            return Buffer.concat([decipher.update(data), decipher.final()]).toString('utf8');
+          }
+        }
       };
 
       globalThis.clearInterval = clearInterval;
