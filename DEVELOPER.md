@@ -41,7 +41,45 @@ The CLI will automatically generate a new folder with a safe `packageName` based
 Navigate to your plugin folder (e.g., `my-plugin/`) and open `plugin.js`. This is where you implement the four core functions.
 
 > [!IMPORTANT]
-> **Dynamic Base URL Architecture**: Always use `manifest.baseUrl` instead of hardcoded domain strings. This allows users to override the domain (e.g., for mirrors or proxies) directly from the app.
+> **Dynamic Base URL Architecture**: Always use `manifest.baseUrl` instead of hardcoded domain strings. This allows users to switch domains (mirrors) directly from the app without any plugin code changes.
+
+### Declaring Mirror Domains
+
+To let users pick from multiple domains, add a `domains` array to `plugin.json`:
+
+```json
+{
+  "packageName": "com.example.myplugin",
+  "name": "My Plugin",
+  "baseUrl": "https://primary-domain.com",
+  "domains": [
+    { "name": "primary-domain.com", "url": "https://primary-domain.com" },
+    { "name": "mirror1.com",        "url": "https://mirror1.com" },
+    { "name": "mirror2.com",        "url": "https://mirror2.com" }
+  ]
+}
+```
+
+When `domains` is present, a **domain selector** appears in the plugin's settings gear in the Extensions screen. The selected URL is automatically injected as `manifest.baseUrl` — your plugin JS needs **no changes**.
+
+### Declaring Sub-Providers (One JS, Many Feeds)
+
+If a single JS file can serve multiple independent sources (e.g., different M3U playlists), declare them as `providers` instead of creating separate plugins:
+
+```json
+{
+  "packageName": "com.example.mybundle",
+  "name": "My Bundle",
+  "baseUrl": "https://fallback.com",
+  "providers": [
+    { "id": "feed1", "name": "Feed One",  "baseUrl": "https://feed1.com/playlist.m3u" },
+    { "id": "feed2", "name": "Feed Two",  "baseUrl": "https://feed2.com/playlist.m3u" },
+    { "id": "feed3", "name": "Feed Three","baseUrl": "https://feed3.com/playlist.m3u" }
+  ]
+}
+```
+
+The app creates one provider instance per entry and injects each entry's `baseUrl` as `manifest.baseUrl` — again, **no JS changes needed**. Users can enable/disable individual sub-providers from the plugin settings. Cannot be combined with `domains`.
 
 <details>
 <summary><b>View the Core Function Templates</b></summary>
@@ -119,6 +157,13 @@ git add .
 git commit -m "Initial commit"
 git push -u origin main
 ```
+### Step 5. Shortcode Sharing (Optional)
+To make your repository easier to share, you can create a shortcode.
+1.  Go to **[cutt.ly](https://cutt.ly)**.
+2.  Paste your **Raw `repo.json` URL**.
+3.  Create a custom alias with the prefix `sky-`.
+    *   Example: `https://cutt.ly/sky-myrepo`
+4.  **Share**: Users can now just type `myrepo` in the app's "Add Repository" dialog.
 
 ---
 
@@ -245,24 +290,12 @@ If you prefer raw objects, ensure they match these definitions:
 <summary><b>Advanced Features</b></summary>
 
 ### Native SDK Helpers
-SkyStream Gen 2 provides high-level SDK helpers for complex tasks like settings, captcha, and crypto.
+SkyStream Gen 2 provides high-level SDK helpers for captcha and crypto.
 
 | Helper | Signature | Description |
 | :--- | :--- | :--- |
-| **Settings** | `registerSettings(schema)` | Register plugin settings (Toggles, Selects, Input). |
 | **Captcha** | `await solveCaptcha(key, url)` | Opens a captcha solver for the user. Returns token. |
 | **Crypto** | `await crypto.decryptAES(data, key, iv)`| Optimized AES decryption bridge. |
-
-**Using Settings:**
-```javascript
-registerSettings([
-  { id: "quality", name: "Default Quality", type: "select", options: ["1080p", "720p"], default: "1080p" },
-  { id: "dubbed", name: "Prefer Dubbed", type: "toggle", default: false }
-]);
-
-// Access via global settings object
-const preferredQuality = settings.quality;
-```
 
 ### Byte-Level Proxying
 If a video host requires specific headers that the player can't send, use the Magic Proxy:

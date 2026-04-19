@@ -2,6 +2,22 @@
  * SkyStream Plugin v2 Type Definitions
  */
 
+export interface PluginDomain {
+  /** Display name shown in the domain selector (e.g. "yflix.to") */
+  name: string;
+  /** Full URL for this domain (e.g. "https://yflix.to") */
+  url: string;
+}
+
+export interface PluginSubProvider {
+  /** Unique ID within the parent plugin (e.g. "sonyliv") */
+  id: string;
+  /** Display name shown in the providers list (e.g. "SonyLIV") */
+  name: string;
+  /** Base URL injected as `manifest.baseUrl` for this sub-provider */
+  baseUrl: string;
+}
+
 export interface Manifest {
   packageName: string;
   name: string;
@@ -12,6 +28,19 @@ export interface Manifest {
   iconUrl?: string;
   languages: string[];
   categories: string[];
+  /**
+   * Optional list of mirror domains. When present, the app renders a domain
+   * selector in plugin settings. The user's choice is injected as
+   * `manifest.baseUrl` at runtime — no plugin code changes needed.
+   */
+  domains?: PluginDomain[];
+  /**
+   * Optional list of sub-providers. One JS file serves multiple feeds, each
+   * with its own `baseUrl`. The app creates one provider instance per entry
+   * and lets users enable/disable each from plugin settings.
+   * Cannot be combined with `domains`.
+   */
+  providers?: PluginSubProvider[];
 }
 
 export type Result<T> = 
@@ -225,9 +254,6 @@ declare global {
     body?: string,
     callback?: (res: HttpResponse) => void
   ): Promise<HttpResponse>;
-
-  /** Register Custom Plugin Settings */
-  function registerSettings(schema: any[]): void;
 
   /** Solve Captcha Challenge */
   function solveCaptcha(siteKey: string, url: string): Promise<string>;
