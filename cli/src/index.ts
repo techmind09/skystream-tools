@@ -15,7 +15,7 @@ const program = new Command();
 program
   .name('skystream')
   .description('SkyStream Plugin Development Kit CLI (Sky Gen 2)')
-  .version('1.5.9');
+  .version('1.6.0');
 
 // Schemas
 const pluginSchema = z.object({
@@ -50,12 +50,6 @@ const JS_TEMPLATE = `(function() {
      * @type {import('@skystream/sdk').Manifest}
      */
     // var manifest is injected at runtime
-
-    // 1. (Optional) Register your plugin settings
-    //     registerSettings([
-    //         { id: "quality", name: "Default Quality", type: "select", options: ["1080p", "720p"], default: "1080p" },
-    //         { id: "prefer_dub", name: "Prefer Dubbed", type: "toggle", default: false }
-    //     ]);
 
     /**
      * Loads the home screen categories.
