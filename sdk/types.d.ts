@@ -14,8 +14,12 @@ export interface PluginSubProvider {
   id: string;
   /** Display name shown in the providers list (e.g. "SonyLIV") */
   name: string;
-  /** Base URL injected as `manifest.baseUrl` for this sub-provider */
-  baseUrl: string;
+  /**
+   * Optional static base URL injected as `manifest.baseUrl`.
+   * Omit when the URL is dynamic — the app will inject `manifest.providerId`
+   * instead so your JS can resolve the URL at runtime (e.g. via Firebase).
+   */
+  baseUrl?: string;
 }
 
 export interface Manifest {
@@ -35,12 +39,22 @@ export interface Manifest {
    */
   domains?: PluginDomain[];
   /**
-   * Optional list of sub-providers. One JS file serves multiple feeds, each
-   * with its own `baseUrl`. The app creates one provider instance per entry
-   * and lets users enable/disable each from plugin settings.
+   * Optional list of sub-providers. One JS file serves multiple feeds.
+   * The app creates one provider instance per entry, injecting either
+   * `manifest.baseUrl` (if `baseUrl` is declared) or `manifest.providerId`
+   * (if `baseUrl` is omitted, for dynamic URL resolution at runtime).
+   * Users can enable/disable each sub-provider from plugin settings.
    * Cannot be combined with `domains`.
    */
   providers?: PluginSubProvider[];
+  /**
+   * Set by the app when the plugin is loaded as a sub-provider without a
+   * static `baseUrl`. Equals the sub-provider's `id` from plugin.json.
+   * Use this to fetch the URL dynamically (e.g. from Firebase) and serve
+   * only that provider's content.
+   * Absent when the plugin runs as a root (single) provider.
+   */
+  providerId?: string;
 }
 
 export type Result<T> = 
