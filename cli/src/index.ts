@@ -18,10 +18,12 @@ const unpacker = require('unpacker');
 
 const program = new Command();
 
+const packageJson = require('../package.json');
+
 program
   .name('skystream')
   .description('SkyStream Plugin Development Kit CLI')
-  .version('1.8.0');
+  .version(packageJson.version);
 
 // Schemas
 const pluginSchema = z.object({
