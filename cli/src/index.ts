@@ -855,24 +855,34 @@ program.command('deploy')
             const indexTs = path.join(itemPath, 'src', 'index.ts');
             
             if (options.bundle !== false) {
-              const targetTs = await fs.pathExists(tsFile) ? tsFile : (await fs.pathExists(indexTs) ? indexTs : null);
-              if (targetTs) {
+              const targetEntry = await fs.pathExists(tsFile) ? tsFile : 
+                                 (await fs.pathExists(indexTs) ? indexTs : 
+                                 (await fs.pathExists(path.join(itemPath, 'plugin.js')) ? path.join(itemPath, 'plugin.js') : null));
+              
+              if (targetEntry) {
                 console.log(`Bundling ${packageName} with esbuild...`);
+                const buildDir = path.join(itemPath, '.build');
+                await fs.ensureDir(buildDir);
+                const bundledOutfile = path.join(buildDir, 'plugin.bundled.js');
+                
                 await esbuild.build({
-                  entryPoints: [targetTs],
+                  entryPoints: [targetEntry],
                   bundle: true,
                   minify: true,
-                  outfile: entryFile,
+                  outfile: bundledOutfile,
                   format: 'iife',
                   globalName: 'PluginModule',
                   treeShaking: true,
+                  platform: 'neutral',
                   target: 'es2020',
                   footer: { js: 'Object.assign(globalThis, PluginModule);' }
                 });
+                // Point entryFile to the bundled output so archiver picks it up instead of source
+                entryFile = bundledOutfile;
               }
             }
 
-            if (!await fs.pathExists(entryFile)) {
+            if (!await fs.pathExists(entryFile) && !options.bundle) {
                console.warn(`Skipping ${packageName} - missing plugin.js or source to compile`);
                continue;
             }
