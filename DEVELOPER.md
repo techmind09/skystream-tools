@@ -248,6 +248,9 @@ Once your GitHub Action finishes deploying (check the "Actions" tab on GitHub), 
 
 SkyStream comes with a massive built-in library of **Common Extractors**. This means you don't need to write custom scraping logic for popular video hosting sites like MixDrop, StreamTape, Voe, Filemoon, DoodStream, etc.
 
+> [!NOTE]
+> **No NPM Installation Required!** You do *not* need to install the `skystream-extractors` package to build plugins. `loadExtractor()` is a global function natively injected by the SkyStream app engine at runtime, and perfectly mocked by the `skystream test` CLI during local development.
+
 If your plugin scrapes a movie site and finds an iframe or embed link to a supported video host, you can simply pass that URL to the `loadExtractor()` function. The engine will automatically identify the host, run the correct extractor, and return the playable stream links!
 
 ```javascript
