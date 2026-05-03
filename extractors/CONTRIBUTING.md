@@ -20,10 +20,9 @@ All extractors live in `src/extractors/`. To create a new one, add a new `.ts` f
 ```typescript
 import { ExtractorApi, IExtractorLink } from '../core/extractor_api';
 import { Qualities } from '../core/qualities';
-import { registerExtractor } from '../core/registry';
 // Import any utils you need: JsUnpacker, M3u8Helper, etc.
 
-class MyExtractor extends ExtractorApi {
+export class MyExtractor extends ExtractorApi {
   name = 'MyExtractor';
   mainUrl = 'https://myextractor.com';
   requiresReferer = false;
@@ -50,19 +49,17 @@ class MyExtractor extends ExtractorApi {
   }
 }
 
-// 4. Register the extractor
-registerExtractor(new MyExtractor());
-```
+// 4. Export the extractor (no registration required)
+// The class is automatically exported at the bottom of the file if needed, but the class is already exported above.
 
-## 3. Registering Your Extractor
+## 3. Exporting Your Extractor
 
-Once you have created your extractor, you must register it in the main entrypoint. Open `src/index.ts` and add your import at the bottom:
+Once you have created your extractor, you must export it in the main entrypoint so plugins can import it. Open `src/index.ts` and add your explicit export at the bottom:
 
 ```typescript
-// Register extractors
-import './extractors/hub_cloud';
-import './extractors/mix_drop';
-import './extractors/my_extractor'; // <-- Add this
+export { HubCloud } from './extractors/hub_cloud';
+export { MixDrop } from './extractors/mix_drop';
+export { MyExtractor } from './extractors/my_extractor'; // <-- Add this
 ```
 
 ## 4. The Extractor Toolbelt

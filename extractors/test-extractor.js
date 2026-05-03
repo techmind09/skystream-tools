@@ -1,6 +1,5 @@
-const { loadExtractor } = require('./dist/index.js');
+const extractors = require('./dist/index.js');
 const { JSDOM } = require('../cli/node_modules/jsdom');
-require('./dist/index.js'); // ensuring registry is populated
 
 const _global = global;
 
@@ -38,10 +37,33 @@ async function run() {
     }
     console.log('Testing Extractor with URL:', url);
     
-    // We pass empty referer just for testing
-    const results = await loadExtractor(url);
-    console.log("\nResults:");
-    console.log(JSON.stringify(results, null, 2));
+    let results = [];
+    let found = false;
+
+    // Iterate over all exported extractors to find one that matches
+    for (const key of Object.keys(extractors)) {
+        const ExtractorClass = extractors[key];
+        if (typeof ExtractorClass === 'function' && ExtractorClass.prototype && ExtractorClass.prototype.getUrl) {
+            try {
+                const instance = new ExtractorClass();
+                if (instance.mainUrl && url.includes(new URL(instance.mainUrl).hostname.replace('www.', ''))) {
+                    console.log(`Matched extractor: ${key}`);
+                    found = true;
+                    results = await instance.getUrl(url);
+                    break;
+                }
+            } catch (e) {
+                // Ignore initialization errors for unrelated exports
+            }
+        }
+    }
+
+    if (!found) {
+        console.log("No matching extractor found for this URL.");
+    } else {
+        console.log("\nResults:");
+        console.log(JSON.stringify(results, null, 2));
+    }
 }
 
 run();

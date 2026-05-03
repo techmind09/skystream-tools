@@ -1,5 +1,4 @@
-import { loadExtractor } from './src/core/registry';
-import './src/index';
+import * as extractors from './src/index';
 import axios from 'axios';
 import { JSDOM } from 'jsdom';
 
@@ -61,8 +60,28 @@ async function run() {
         process.exit(1);
     }
     console.log('Testing Extractor with URL:', url);
-    const results = await loadExtractor(url);
-    console.log(JSON.stringify(results, null, 2));
+    let results: any[] = [];
+    let found = false;
+    for (const key of Object.keys(extractors)) {
+        const ExtractorClass = (extractors as any)[key];
+        if (typeof ExtractorClass === 'function' && ExtractorClass.prototype && ExtractorClass.prototype.getUrl) {
+            try {
+                const instance = new ExtractorClass();
+                if (instance.mainUrl && url.includes(new URL(instance.mainUrl).hostname.replace('www.', ''))) {
+                    console.log(`Matched extractor: ${key}`);
+                    found = true;
+                    results = await instance.getUrl(url);
+                    break;
+                }
+            } catch (e) {
+            }
+        }
+    }
+    if (!found) {
+        console.log("No matching extractor found for this URL.");
+    } else {
+        console.log(JSON.stringify(results, null, 2));
+    }
 }
 
 run();
