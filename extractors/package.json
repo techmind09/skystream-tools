@@ -1,5 +1,5 @@
 {
-  "name": "@skystream/extractors",
+  "name": "skystream-extractors",
   "version": "1.0.0",
   "description": "SkyStream extractor library — 1-to-1 port of CloudStream extractors",
   "main": "dist/index.js",

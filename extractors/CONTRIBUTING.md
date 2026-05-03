@@ -1,6 +1,6 @@
 # Contributing to SkyStream Extractors
 
-Welcome to the `@skystream/extractors` workspace! This package hosts the unified video host resolution engine for SkyStream. It is designed to be highly compatible with CloudStream extractors, meaning most existing CloudStream extractors can be ported directly over with minimal changes.
+Welcome to the `skystream-extractors` workspace! This package hosts the unified video host resolution engine for SkyStream. It is designed to be highly compatible with CloudStream extractors, meaning most existing CloudStream extractors can be ported directly over with minimal changes.
 
 ## 1. Environment Setup
 
@@ -113,7 +113,7 @@ return streams;
 
 ## 5. Porting from CloudStream
 
-The `@skystream/extractors` package uses the exact same interface names (`ExtractorApi`, `getUrl`) as CloudStream's Kotlin base classes. 
+The `skystream-extractors` package uses the exact same interface names (`ExtractorApi`, `getUrl`) as CloudStream's Kotlin base classes. 
 
 **Key Translation Rules:**
 - Replace Kotlin `app.get(url).text` with `await http_get(url).then(r => r.body)`.

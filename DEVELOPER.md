@@ -272,7 +272,7 @@ async function loadStreams(url, cb) {
 ```
 
 > [!TIP]
-> **Can't find the extractor you need?** You can contribute new extractors or fix broken ones in the open-source `@skystream/extractors` package. Check out the `CONTRIBUTING.md` guide in the `extractors/` folder.
+> **Can't find the extractor you need?** You can contribute new extractors or fix broken ones in the open-source `skystream-extractors` package. Check out the `CONTRIBUTING.md` guide in the `extractors/` folder.
 
 ---
 
