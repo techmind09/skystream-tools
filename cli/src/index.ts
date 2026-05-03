@@ -10,6 +10,11 @@ import axios from 'axios';
 import AdmZip from 'adm-zip';
 import { JSDOM } from 'jsdom';
 import * as esbuild from 'esbuild';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const unpacker = require('unpacker');
+
+
 
 const program = new Command();
 
@@ -266,6 +271,18 @@ After you have installed your plugins, you need to toggle the providers to see c
 1.  Return to the **Home Screen**.
 2.  Change **Provider** (bottom right floating action button).
 3.  Switch to your newly installed providers to begin browsing.
+
+---
+
+## 🛠 Development
+
+To contribute to this repository or test locally:
+
+1.  **Clone the repo**: \`git clone https://github.com/USER_NAME/${slug}.git\`
+2.  **Install dependencies**: \`npm install\`
+3.  **Add/Update extractors**: \`npm install skystream-extractors\` (or \`npm update skystream-extractors\`)
+4.  **Test a plugin**: \`skystream test -f loadStreams -q "https://example.com/video"\`
+5.  **Deploy**: Push your changes to the \`main\` branch; the GitHub Action will automatically bundle and update the repository index.
 `;
 
 const GITHUB_ACTION_TEMPLATE = `name: Build and Deploy Repository
@@ -295,6 +312,7 @@ jobs:
 
       - name: Deploy Repository
         run: |
+          npm install
           npm install -g skystream-cli
           skystream deploy -u https://raw.githubusercontent.com/\${{ github.repository }}/main
 
@@ -341,6 +359,18 @@ program.command('init')
     };
     await fs.writeJson(path.join(rootDir, 'repo.json'), repo, { spaces: 2 });
     await fs.writeFile(path.join(rootDir, 'README.md'), README_TEMPLATE(projectName, projectSlug));
+
+    // Initialize package.json for extractor support
+    const packageJson = {
+      name: projectSlug,
+      version: "1.0.0",
+      description: options.description,
+      private: true,
+      scripts: {
+        "deploy": `skystream deploy -u https://raw.githubusercontent.com/USER_NAME/${projectSlug}/main/`
+      }
+    };
+    await fs.writeJson(path.join(rootDir, 'package.json'), packageJson, { spaces: 2 });
 
     // GitHub Action
     const githubWorkflowsDir = path.join(rootDir, '.github', 'workflows');
@@ -470,7 +500,33 @@ program.command('test')
     }
 
     const manifest = await fs.readJson(manifestPath);
-    const jsContent = await fs.readFile(jsPath, 'utf8');
+    
+    // Bundle with esbuild to handle imports
+    let jsContent;
+    try {
+        const buildResult = await esbuild.build({
+            entryPoints: [jsPath],
+            bundle: true,
+            write: false,
+            platform: 'browser',
+            format: 'iife',
+            globalName: 'plugin',
+            footer: {
+                js: 'Object.assign(globalThis, plugin);'
+            }
+        });
+        jsContent = buildResult.outputFiles[0].text;
+    } catch (e: any) {
+        console.error('\x1b[31m--- BUNDLING ERROR ---\x1b[0m');
+        if (e.errors) {
+            e.errors.forEach((err: any) => {
+                console.error(`  [esbuild]: ${err.text} at ${err.location?.file}:${err.location?.line}`);
+            });
+        } else {
+            console.error(e.message);
+        }
+        process.exit(1);
+    }
 
     console.log(`\n--- Testing ${manifest.packageName} -> ${options.function} ---`);
     const preferences: Record<string, any> = {};
@@ -586,6 +642,35 @@ program.command('test')
         return '';
       },
       globalThis: {} as any,
+      parse_html: async (html: string, selector: string, attribute?: string) => {
+           const dom = new JSDOM(html);
+           if (!dom.window.document) return [];
+           const els = Array.from(dom.window.document.querySelectorAll(selector));
+           return els.map((el: any) => ({
+               text: el.textContent,
+               attr: attribute ? el.getAttribute(attribute) : null,
+               innerHTML: el.innerHTML
+           }));
+      },
+      parse_dom: async (html: string) => {
+           const dom = new JSDOM(html);
+           return dom.window.document;
+      },
+      http_parallel: async (requests: any[], cb?: any) => {
+           const results = await Promise.all(requests.map(req => context.http_get(req.url, req.headers, null)));
+           if (cb) cb(results);
+           return results;
+      },
+      getAndUnpack: (js: string) => {
+          if (unpacker.detect(js)) {
+              return unpacker.unpack(js);
+          }
+          return js;
+      },
+      CloudStream: {
+           getLanguage: () => "en",
+           getRegion: () => "US"
+      }
     };
     context.globalThis = context;
 

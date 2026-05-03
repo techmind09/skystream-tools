@@ -35,6 +35,7 @@
     "inquirer": "^12.11.1",
     "jsdom": "^25.0.1",
     "skystream-extractors": "file:../extractors",
+    "unpacker": "^1.0.1",
     "zod": "^4.3.6"
   },
   "devDependencies": {

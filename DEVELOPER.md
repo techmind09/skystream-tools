@@ -206,9 +206,6 @@ Verify your scraper logic directly in your terminal before deploying.
 | **load** | `skystream test -f load -q "URL"` | Verify movie/series details & episodes. |
 | **loadStreams** | `skystream test -f loadStreams -q "URL"` | Check if playable video links are found. |
 
-> [!TIP]
-> **Testing Extractors:** The test sandbox automatically mocks the entire **Common Extractor Registry**. If your `loadStreams` function calls `loadExtractor()`, the CLI will simulate a successful extractor execution against your URL!
-
 
 ### Step 5: Deployment
 SkyStream uses GitHub Actions to deploy and host your repository automatically. Or you can run `skystream deploy -u <YOUR_URL>` locally to generate the `.sky` zips.
@@ -250,6 +247,11 @@ Because plugins are compiled using `esbuild`, you **must** install the extractor
 Inside your plugin directory, run:
 ```bash
 npm install skystream-extractors
+```
+
+To update to the latest extractors (e.g., when new ones are added by the community):
+```bash
+npm update skystream-extractors
 ```
 
 ---

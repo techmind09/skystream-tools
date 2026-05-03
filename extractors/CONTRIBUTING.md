@@ -134,6 +134,9 @@ npm run test -- "https://hubcloud.club/drive/abcd"
 
 This will print out the beautifully formatted JSON array of `IExtractorLink` objects exactly as they will be sent back to the SkyStream video player.
 
+> [!IMPORTANT]
+> Always ensure there is a **space** after the `--` separator (e.g., `npm run test -- "URL"`). If you omit the space, npm will attempt to parse the URL as an internal configuration flag and the test will fail.
+
 ## 7. Build & Deploy
 
 Once your extractor works perfectly, build the workspace to generate the final `dist/index.js` file:

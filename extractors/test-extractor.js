@@ -40,20 +40,21 @@ async function run() {
     let results = [];
     let found = false;
 
-    // Iterate over all exported extractors to find one that matches
     for (const key of Object.keys(extractors)) {
         const ExtractorClass = extractors[key];
         if (typeof ExtractorClass === 'function' && ExtractorClass.prototype && ExtractorClass.prototype.getUrl) {
             try {
                 const instance = new ExtractorClass();
-                if (instance.mainUrl && url.includes(new URL(instance.mainUrl).hostname.replace('www.', ''))) {
+                const hostnameMatch = instance.mainUrl && url.includes(new URL(instance.mainUrl).hostname.split('.')[0]);
+                const nameMatch = url.toLowerCase().includes(key.toLowerCase());
+
+                if (hostnameMatch || nameMatch) {
                     console.log(`Matched extractor: ${key}`);
                     found = true;
                     results = await instance.getUrl(url);
                     break;
                 }
             } catch (e) {
-                // Ignore initialization errors for unrelated exports
             }
         }
     }
