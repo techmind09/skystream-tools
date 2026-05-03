@@ -1,4 +1,4 @@
-name: Publish to NPM
+name: Auto Version & Publish
 
 on:
   push:
@@ -6,13 +6,17 @@ on:
       - main
 
 jobs:
-  publish:
+  version-and-publish:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       id-token: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -20,30 +24,47 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Publish Extractors
+      - name: Git Identity
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Process Extractors
         working-directory: ./extractors
         run: |
           npm install
+          
+          # Determine version bump type
+          BUMP="patch"
+          if [[ "${{ github.event.head_commit.message }}" == *"feat:"* ]]; then BUMP="minor"; fi
+          if [[ "${{ github.event.head_commit.message }}" == *"BREAKING CHANGE"* ]]; then BUMP="major"; fi
+          
+          echo "Bumping extractors version ($BUMP)..."
+          npm version $BUMP -m "chore(release): extractors %s [skip ci]"
+          
           npm run build
-          # Only publish if the version doesn't exist on NPM
-          if ! npm view skystream-extractors@$(node -p "require('./package.json').version") > /dev/null 2>&1; then
-            npm publish --access public
-          else
-            echo "Extractors version already published, skipping..."
-          fi
+          npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish CLI
+      - name: Process CLI
         working-directory: ./cli
         run: |
           npm install
+          
+          # Determine version bump type
+          BUMP="patch"
+          if [[ "${{ github.event.head_commit.message }}" == *"feat:"* ]]; then BUMP="minor"; fi
+          if [[ "${{ github.event.head_commit.message }}" == *"BREAKING CHANGE"* ]]; then BUMP="major"; fi
+          
+          echo "Bumping CLI version ($BUMP)..."
+          npm version $BUMP -m "chore(release): cli %s [skip ci]"
+          
           npm run build
-          # Only publish if the version doesn't exist on NPM
-          if ! npm view skystream-cli@$(node -p "require('./package.json').version") > /dev/null 2>&1; then
-            npm publish --access public
-          else
-            echo "CLI version already published, skipping..."
-          fi
+          npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Push Version Bumps
+        run: |
+          git push --follow-tags
