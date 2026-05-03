@@ -166,6 +166,24 @@ export interface IStreamResult {
   licenseUrl?: string;
 }
 
+export interface IExtractorLink {
+  source: string;
+  name: string;
+  url: string;
+  referer?: string;
+  quality?: number;
+  type?: 'video' | 'm3u8' | 'dash';
+  headers?: Record<string, string>;
+  drmKid?: string;
+  drmKey?: string;
+  licenseUrl?: string;
+}
+
+export const Qualities = {
+  Unknown: 400, P144: 144, P240: 240, P360: 360,
+  P480: 480,   P720: 720,  P1080: 1080, P2160: 2160,
+} as const;
+
 // Global Bridge Environment
 declare global {
   /** The pre-injected manifest for the current plugin */
@@ -268,6 +286,24 @@ declare global {
     body?: string,
     callback?: (res: HttpResponse) => void
   ): Promise<HttpResponse>;
+
+  /** Native Bridge: Parallel HTTP */
+  function http_parallel(
+    requests: Array<{ url: string; headers?: Record<string, string>; method?: 'GET' | 'POST'; body?: string }>
+  ): Promise<HttpResponse[]>;
+
+  /** Decode P.A.C.K.E.R. obfuscated JS via native Dart bridge */
+  function getAndUnpack(js: string): string;
+
+  /** Resolve a video hoster URL */
+  function loadExtractor(url: string, referer?: string): Promise<IExtractorLink[]>;
+
+  /** CSS selector query on raw HTML — runs in Dart's html package */
+  function parse_html(
+    html: string,
+    selector: string,
+    attr?: string
+  ): Promise<Array<{ text: string; html: string; attr: string }>>;
 
   /** Solve Captcha Challenge */
   function solveCaptcha(siteKey: string, url: string): Promise<string>;

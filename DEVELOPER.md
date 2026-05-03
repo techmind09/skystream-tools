@@ -38,7 +38,12 @@ skystream add "New-Plugin-Name"
 The CLI will automatically generate a new folder with a safe `packageName` based on your repository ID.
 
 ### Step 3: Write Your Scraper Logic
-Navigate to your plugin folder (e.g., `my-plugin/`) and open `plugin.js`. This is where you implement the four core functions.
+Navigate to your plugin folder (e.g., `my-plugin/`). You can write your logic in either `plugin.js`, `plugin.ts`, or `src/index.ts`. SkyStream now automatically bundles TypeScript files using `esbuild` during deployment.
+
+> [!IMPORTANT]
+> **TypeScript Support**: The recommended approach is to write your plugins in TypeScript. The CLI will automatically compile, bundle, and tree-shake your code into a single `plugin.js` upon deployment.
+
+This is where you implement the four core functions.
 
 > [!IMPORTANT]
 > **Dynamic Base URL Architecture**: Always use `manifest.baseUrl` instead of hardcoded domain strings. This allows users to switch domains (mirrors) directly from the app without any plugin code changes.
@@ -160,6 +165,12 @@ async function fetchFeedUrlForProvider(providerId) {
 
     // 4. loadStreams: Provides playable video links
     async function loadStreams(url, cb) {
+        // If your plugin scrapes a link to a common video host (e.g. MixDrop, StreamTape, Voe)
+        // You can use the built-in extractor registry to resolve it automatically:
+        // const videoHostUrl = "https://mixdrop.co/e/abc123xyz";
+        // const streams = await loadExtractor(videoHostUrl);
+        // cb({ success: true, data: streams });
+
         const streamUrl = `${manifest.baseUrl}/streams?url=${url}`;
         cb({ success: true, data: [ /* StreamResult objects */ ] });
     }
@@ -196,10 +207,14 @@ Verify your scraper logic directly in your terminal before deploying.
 | **loadStreams** | `skystream test -f loadStreams -q "URL"` | Check if playable video links are found. |
 
 > [!TIP]
-> If a test fails with `PARSE_ERROR`, the CLI (v1.2.8+) will now attempt to show you the internal JavaScript stack trace to help you pinpoint the exact line that crashed.
+> **Testing Extractors:** The test sandbox automatically mocks the entire **Common Extractor Registry**. If your `loadStreams` function calls `loadExtractor()`, the CLI will simulate a successful extractor execution against your URL!
 
-### Step 4: Deployment
-SkyStream uses GitHub Actions to deploy and host your repository automatically.
+
+### Step 5: Deployment
+SkyStream uses GitHub Actions to deploy and host your repository automatically. Or you can run `skystream deploy -u <YOUR_URL>` locally to generate the `.sky` zips.
+
+> [!NOTE]
+> The `deploy` command automatically runs `esbuild` for TypeScript plugins. If you prefer to use your own external build pipeline, pass the `--no-bundle` flag.
 1. Create a new repository on GitHub.
 2. Push your code:
 ```bash
@@ -209,7 +224,7 @@ git add .
 git commit -m "Initial commit"
 git push -u origin main
 ```
-### Step 5. Shortcode Sharing (Optional)
+### Step 6. Shortcode Sharing (Optional)
 To make your repository easier to share, you can create a shortcode.
 1.  Go to **[cutt.ly](https://cutt.ly)**.
 2.  Paste your **Raw `repo.json` URL**.
@@ -229,7 +244,39 @@ Once your GitHub Action finishes deploying (check the "Actions" tab on GitHub), 
 
 ---
 
-## 4. Technical Reference
+## 4. Using Common Extractors
+
+SkyStream comes with a massive built-in library of **Common Extractors**. This means you don't need to write custom scraping logic for popular video hosting sites like MixDrop, StreamTape, Voe, Filemoon, DoodStream, etc.
+
+If your plugin scrapes a movie site and finds an iframe or embed link to a supported video host, you can simply pass that URL to the `loadExtractor()` function. The engine will automatically identify the host, run the correct extractor, and return the playable stream links!
+
+```javascript
+async function loadStreams(url, cb) {
+    // 1. Scrape your site to find the embedded video host URL
+    const videoHostUrl = await scrapeEmbedUrl(url); // e.g. "https://mixdrop.co/e/xyz123"
+
+    // 2. Pass it to the built-in extractor engine
+    try {
+        const streams = await loadExtractor(videoHostUrl);
+        
+        // streams is an array of IExtractorLink / StreamResult objects
+        if (streams && streams.length > 0) {
+            return cb({ success: true, data: streams });
+        }
+    } catch (e) {
+        console.error("Extractor failed: ", e);
+    }
+    
+    cb({ success: true, data: [] });
+}
+```
+
+> [!TIP]
+> **Can't find the extractor you need?** You can contribute new extractors or fix broken ones in the open-source `@skystream/extractors` package. Check out the `CONTRIBUTING.md` guide in the `extractors/` folder.
+
+---
+
+## 5. Technical Reference
 
 <details>
 <summary><b>JavaScript Helper Classes (Recommended)</b></summary>
@@ -348,6 +395,9 @@ SkyStream Gen 2 provides high-level SDK helpers for captcha and crypto.
 | :--- | :--- | :--- |
 | **Captcha** | `await solveCaptcha(key, url)` | Opens a captcha solver for the user. Returns token. |
 | **Crypto** | `await crypto.decryptAES(data, key, iv)`| Optimized AES decryption bridge. |
+| **DOM Parser** | `await parse_html(html, selector, attr)` | High-performance native HTML parsing (no regex needed). |
+| **JS Unpacker**| `getAndUnpack(js)` | Natively deobfuscates P.A.C.K.E.R. strings in milliseconds. |
+| **Parallel HTTP**| `await http_parallel(requests)` | Fires multiple HTTP requests concurrently in Dart. |
 
 ### Byte-Level Proxying
 If a video host requires specific headers that the player can't send, use the Magic Proxy:

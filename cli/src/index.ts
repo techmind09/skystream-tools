@@ -9,6 +9,7 @@ import archiver from 'archiver';
 import axios from 'axios';
 import AdmZip from 'adm-zip';
 import { JSDOM } from 'jsdom';
+import * as esbuild from 'esbuild';
 
 const program = new Command();
 
@@ -584,6 +585,18 @@ program.command('test')
         }
         return '';
       },
+      loadExtractor: async (url: string) => {
+        console.log(`  [Mock SDK]: loadExtractor called with URL: ${url}`);
+        // Return a mock result so the plugin developer can verify their logic reached this point
+        return [{
+            name: "Mock Extractor",
+            source: "Mock Source",
+            url: "https://mock-stream.com/video.m3u8",
+            quality: "Auto",
+            type: "m3u8",
+            headers: { "Referer": url }
+        }];
+      },
       globalThis: {} as any,
     };
     context.globalThis = context;
@@ -735,6 +748,7 @@ program.command('test')
     sandbox.__NodeJSDOM__ = JSDOM;
     sandbox.__crypto__ = crypto;
     sandbox.URL = URL;
+    sandbox.loadExtractor = context.loadExtractor;
     sandbox.globalThis = sandbox;
     
     // Inject the classes from entityDefs into the sandbox
@@ -789,6 +803,7 @@ program.command('test')
 program.command('deploy')
   .description('Deploy all plugins and repository index')
   .requiredOption('-u, --url <url>', 'Base hosting URL for .sky files')
+  .option('--no-bundle', 'Skip esbuild bundling process (useful if already compiled)')
   .action(async (options) => {
     const rootDir = process.cwd();
     const repoPath = path.join(rootDir, 'repo.json');
@@ -811,13 +826,41 @@ program.command('deploy')
         if (await fs.pathExists(mPath) && (await fs.stat(itemPath)).isDirectory()) {
             const manifest = await fs.readJson(mPath);
             const packageName = manifest.packageName || manifest.id || item;
+            
+            let entryFile = path.join(itemPath, 'plugin.js');
+            const tsFile = path.join(itemPath, 'plugin.ts');
+            const indexTs = path.join(itemPath, 'src', 'index.ts');
+            
+            if (options.bundle !== false) {
+              const targetTs = await fs.pathExists(tsFile) ? tsFile : (await fs.pathExists(indexTs) ? indexTs : null);
+              if (targetTs) {
+                console.log(`Bundling ${packageName} with esbuild...`);
+                await esbuild.build({
+                  entryPoints: [targetTs],
+                  bundle: true,
+                  minify: true,
+                  outfile: entryFile,
+                  format: 'iife',
+                  globalName: 'PluginModule',
+                  treeShaking: true,
+                  target: 'es2020',
+                  footer: { js: 'Object.assign(globalThis, PluginModule);' }
+                });
+              }
+            }
+
+            if (!await fs.pathExists(entryFile)) {
+               console.warn(`Skipping ${packageName} - missing plugin.js or source to compile`);
+               continue;
+            }
+
             const bundleName = packageName + ".sky";
             const outPath = path.join(distDir, bundleName);
             
             const arch = archiver('zip', { zlib: { level: 9 } });
             arch.pipe(fs.createWriteStream(outPath));
             arch.file(mPath, { name: 'plugin.json' });
-            arch.file(path.join(itemPath, 'plugin.js'), { name: 'plugin.js' });
+            arch.file(entryFile, { name: 'plugin.js' });
             await arch.finalize();
 
             catalog.push({ ...manifest, url: distUrl + "/" + bundleName });
