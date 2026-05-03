@@ -55,6 +55,30 @@ export class SkyStreamRuntime {
       },
       btoa: (s: string) => Buffer.from(s).toString('base64'),
       atob: (s: string) => Buffer.from(s, 'base64').toString('utf8'),
+      http_parallel: async (requests: any[]) => {
+        console.log(`[Runtime]: http_parallel with ${requests.length} requests`);
+        return Promise.all(requests.map(async (r: any) => {
+          try {
+            const res = await axios({ method: r.method || 'GET', url: r.url, headers: r.headers || {}, data: r.body });
+            const body = typeof res.data === 'string' ? res.data : JSON.stringify(res.data);
+            return { status: res.status, body, headers: res.headers };
+          } catch (e: any) {
+            return { status: e.response?.status || 500, body: e.message, headers: {} };
+          }
+        }));
+      },
+      getAndUnpack: (js: string) => {
+        return js; // Minimal P.A.C.K.E.R. mock
+      },
+      parse_html: async (htmlStr: string, selector: string, attr?: string) => {
+        const dom = new JSDOM(htmlStr);
+        const els = Array.from(dom.window.document.querySelectorAll(selector));
+        return els.map(el => ({
+          text: el.textContent || '',
+          html: el.innerHTML,
+          attr: attr ? (el.getAttribute(attr) || '') : '',
+        }));
+      },
       setTimeout,
       clearTimeout,
       setInterval,

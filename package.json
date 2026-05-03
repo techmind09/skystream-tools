@@ -1,0 +1,10 @@
+{
+  "name": "skystream-tools-workspace",
+  "private": true,
+  "workspaces": [
+    "cli",
+    "sdk",
+    "runtime",
+    "extractors"
+  ]
+}
