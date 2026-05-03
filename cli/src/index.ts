@@ -586,16 +586,39 @@ program.command('test')
         return '';
       },
       loadExtractor: async (url: string) => {
-        console.log(`  [Mock SDK]: loadExtractor called with URL: ${url}`);
-        // Return a mock result so the plugin developer can verify their logic reached this point
-        return [{
-            name: "Mock Extractor",
-            source: "Mock Source",
-            url: "https://mock-stream.com/video.m3u8",
-            quality: "Auto",
-            type: "m3u8",
-            headers: { "Referer": url }
-        }];
+        console.log(`  [SDK]: Running  Extractor for URL: ${url}`);
+        try {
+            // Import the real extractors engine
+            // @ts-ignore
+            const extractors = await import('skystream-extractors');
+            
+            // Expose required native bridges to the Node global scope temporarily
+            const g = globalThis as any;
+            g.http_get = context.http_get;
+            g.http_post = context.http_post;
+            g.http_parallel = async (requests: any[], cb?: any) => {
+                 const results = await Promise.all(requests.map(req => context.http_get(req.url, req.headers, null)));
+                 if (cb) cb(results);
+                 return results;
+            };
+            g.parse_html = async (html: string) => {
+                 const dom = new context.__NodeJSDOM__(html);
+                 await dom.waitForInit();
+                 return dom.window.document;
+            };
+            g.btoa = context.btoa;
+            g.atob = context.atob;
+            g.CloudStream = {
+               getLanguage: function() { return "en"; },
+               getRegion: function() { return "US"; }
+            };
+
+            const results = await extractors.loadExtractor(url);
+            return results;
+        } catch (e: any) {
+            console.error(`  [SDK ERR]: Extractor failed: ${e.stack || e.message}`);
+            return [];
+        }
       },
       globalThis: {} as any,
     };
