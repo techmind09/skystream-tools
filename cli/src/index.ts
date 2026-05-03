@@ -238,6 +238,14 @@ const JS_TEMPLATE = `(function() {
 })();
 `;
 
+const GITIGNORE_TEMPLATE = `node_modules/
+dist/
+.DS_Store
+*.log
+.env
+package-lock.json
+`;
+
 const README_TEMPLATE = (name: string, slug: string) => `# 🌌 ${name}
 ${name} is an extension repo for [SkyStream](https://github.com/akashdh11/skystream). Follow the guide below to get started and set up your providers.
 
@@ -359,6 +367,7 @@ program.command('init')
     };
     await fs.writeJson(path.join(rootDir, 'repo.json'), repo, { spaces: 2 });
     await fs.writeFile(path.join(rootDir, 'README.md'), README_TEMPLATE(projectName, projectSlug));
+    await fs.writeFile(path.join(rootDir, '.gitignore'), GITIGNORE_TEMPLATE);
 
     // Initialize package.json for extractor support
     const packageJson = {
@@ -368,6 +377,9 @@ program.command('init')
       private: true,
       scripts: {
         "deploy": `skystream deploy -u https://raw.githubusercontent.com/USER_NAME/${projectSlug}/main/`
+      },
+      "devDependencies": {
+        "skystream-extractors": "latest"
       }
     };
     await fs.writeJson(path.join(rootDir, 'package.json'), packageJson, { spaces: 2 });
