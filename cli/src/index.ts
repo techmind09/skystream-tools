@@ -15,8 +15,8 @@ const program = new Command();
 
 program
   .name('skystream')
-  .description('SkyStream Plugin Development Kit CLI (Sky Gen 2)')
-  .version('1.6.1');
+  .description('SkyStream Plugin Development Kit CLI')
+  .version('1.7.1');
 
 // Schemas
 const pluginSchema = z.object({
@@ -585,41 +585,6 @@ program.command('test')
         }
         return '';
       },
-      loadExtractor: async (url: string) => {
-        console.log(`  [SDK]: Running  Extractor for URL: ${url}`);
-        try {
-            // Import the real extractors engine
-            // @ts-ignore
-            const extractors = await import('skystream-extractors');
-            
-            // Expose required native bridges to the Node global scope temporarily
-            const g = globalThis as any;
-            g.http_get = context.http_get;
-            g.http_post = context.http_post;
-            g.http_parallel = async (requests: any[], cb?: any) => {
-                 const results = await Promise.all(requests.map(req => context.http_get(req.url, req.headers, null)));
-                 if (cb) cb(results);
-                 return results;
-            };
-            g.parse_html = async (html: string) => {
-                 const dom = new context.__NodeJSDOM__(html);
-                 await dom.waitForInit();
-                 return dom.window.document;
-            };
-            g.btoa = context.btoa;
-            g.atob = context.atob;
-            g.CloudStream = {
-               getLanguage: function() { return "en"; },
-               getRegion: function() { return "US"; }
-            };
-
-            const results = await extractors.loadExtractor(url);
-            return results;
-        } catch (e: any) {
-            console.error(`  [SDK ERR]: Extractor failed: ${e.stack || e.message}`);
-            return [];
-        }
-      },
       globalThis: {} as any,
     };
     context.globalThis = context;
@@ -771,7 +736,6 @@ program.command('test')
     sandbox.__NodeJSDOM__ = JSDOM;
     sandbox.__crypto__ = crypto;
     sandbox.URL = URL;
-    sandbox.loadExtractor = context.loadExtractor;
     sandbox.globalThis = sandbox;
     
     // Inject the classes from entityDefs into the sandbox

@@ -1,6 +1,6 @@
 {
   "name": "skystream-extractors",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "SkyStream extractor library — 1-to-1 port of CloudStream extractors",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
