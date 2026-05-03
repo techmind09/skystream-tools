@@ -1,9 +1,8 @@
 import { ExtractorApi, IExtractorLink } from '../core/extractor_api';
 import { Qualities } from '../core/qualities';
-import { registerExtractor } from '../core/registry';
 import { JsUnpacker } from '../utils/js_unpacker';
 
-class VidHidePro extends ExtractorApi {
+export class VidHidePro extends ExtractorApi {
   name = 'VidHidePro';
   mainUrl = 'https://vidhidepro.com';
   requiresReferer = false;
@@ -30,5 +29,3 @@ class VidHidePro extends ExtractorApi {
     }];
   }
 }
-
-registerExtractor(new VidHidePro());

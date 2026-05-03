@@ -1,8 +1,7 @@
 import { ExtractorApi, IExtractorLink } from '../core/extractor_api';
-import { registerExtractor } from '../core/registry';
 import { Qualities } from '../core/qualities';
 
-class RabbitStream extends ExtractorApi {
+export class RabbitStream extends ExtractorApi {
   name = 'RabbitStream';
   mainUrl = 'https://rabbitstream.net';
   requiresReferer = false;
@@ -45,5 +44,3 @@ class RabbitStream extends ExtractorApi {
     }
   }
 }
-
-registerExtractor(new RabbitStream());

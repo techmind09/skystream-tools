@@ -1,10 +1,9 @@
 import { ExtractorApi, IExtractorLink } from '../core/extractor_api';
 import { Qualities } from '../core/qualities';
-import { registerExtractor } from '../core/registry';
 import { JsUnpacker } from '../utils/js_unpacker';
 import { M3u8Helper } from '../utils/m3u8_helper';
 
-class Filemoon extends ExtractorApi {
+export class Filemoon extends ExtractorApi {
   name = 'Filemoon';
   mainUrl = 'https://filemoon.sx';
   requiresReferer = false;
@@ -25,5 +24,3 @@ class Filemoon extends ExtractorApi {
     return await M3u8Helper.getM3U8Qualities(m3u8Url, { Referer: this.mainUrl });
   }
 }
-
-registerExtractor(new Filemoon());

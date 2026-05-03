@@ -1,8 +1,7 @@
 import { ExtractorApi, IExtractorLink } from '../core/extractor_api';
 import { Qualities } from '../core/qualities';
-import { registerExtractor } from '../core/registry';
 
-class StreamTape extends ExtractorApi {
+export class StreamTape extends ExtractorApi {
   name = 'StreamTape';
   mainUrl = 'https://streamtape.com';
   requiresReferer = false;
@@ -45,5 +44,3 @@ class StreamTape extends ExtractorApi {
     }];
   }
 }
-
-registerExtractor(new StreamTape());

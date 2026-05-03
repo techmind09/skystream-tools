@@ -1,8 +1,7 @@
 import { ExtractorApi, IExtractorLink } from '../core/extractor_api';
 import { Qualities } from '../core/qualities';
-import { registerExtractor } from '../core/registry';
 
-class DoodExtractor extends ExtractorApi {
+export class DoodExtractor extends ExtractorApi {
   name = 'DoodStream';
   mainUrl = 'https://dood.watch';
   requiresReferer = false;
@@ -44,5 +43,3 @@ class DoodExtractor extends ExtractorApi {
     }];
   }
 }
-
-registerExtractor(new DoodExtractor());

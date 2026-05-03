@@ -1,9 +1,8 @@
 import { ExtractorApi, IExtractorLink } from '../core/extractor_api';
 import { Qualities } from '../core/qualities';
-import { registerExtractor } from '../core/registry';
 import { JsHunter } from '../utils/js_hunter';
 
-class Voe extends ExtractorApi {
+export class Voe extends ExtractorApi {
   name = 'Voe';
   mainUrl = 'https://voe.sx';
   requiresReferer = false;
@@ -29,5 +28,3 @@ class Voe extends ExtractorApi {
     }];
   }
 }
-
-registerExtractor(new Voe());

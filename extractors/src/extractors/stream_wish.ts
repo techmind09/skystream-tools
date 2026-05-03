@@ -1,9 +1,8 @@
 import { ExtractorApi, IExtractorLink } from '../core/extractor_api';
-import { registerExtractor } from '../core/registry';
 import { JsUnpacker } from '../utils/js_unpacker';
 import { M3u8Helper } from '../utils/m3u8_helper';
 
-class StreamWish extends ExtractorApi {
+export class StreamWish extends ExtractorApi {
   name = 'StreamWish';
   mainUrl = 'https://streamwish.com';
   requiresReferer = false;
@@ -23,5 +22,3 @@ class StreamWish extends ExtractorApi {
     return await M3u8Helper.getM3U8Qualities(fileMatch[1], { Referer: this.mainUrl });
   }
 }
-
-registerExtractor(new StreamWish());

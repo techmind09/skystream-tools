@@ -25,3 +25,7 @@ export abstract class ExtractorApi {
     return `${this.mainUrl}/${url}`;
   }
 }
+
+declare global {
+  function parse_html(html: string, selector: string, attribute?: string): Promise<any>;
+}

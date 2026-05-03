@@ -244,11 +244,7 @@ Once your GitHub Action finishes deploying (check the "Actions" tab on GitHub), 
 
 ---
 
-## 4. Using Common Extractors
-
-SkyStream comes with a massive built-in library of **Common Extractors**. This means you don't need to write custom scraping logic for popular video hosting sites like MixDrop, StreamTape, Voe, Filemoon, DoodStream, etc.
-
-### 3. Extractors Library Integration
+## 3. Extractors Library Integration
 Because plugins are compiled using `esbuild`, you **must** install the extractors package locally in your plugin repository. This allows the CLI to tree-shake the specific extractor you need and bundle it natively into your final `.sky` file.
 
 Inside your plugin directory, run:
@@ -256,19 +252,34 @@ Inside your plugin directory, run:
 npm install skystream-extractors
 ```
 
-If your plugin scrapes a movie site and finds an iframe or embed link to a supported video host, you can simply pass that URL to the `loadExtractor()` function. The engine will automatically identify the host, run the correct extractor, and return the playable stream links!
+---
+
+## 4. Using Common Extractors
+
+SkyStream comes with a massive built-in library of **Common Extractors**. This means you don't need to write custom scraping logic for popular video hosting sites like MixDrop, StreamTape, Voe, Filemoon, DoodStream, etc.
+
+If your plugin scrapes a movie site and finds an iframe or embed link to a supported video host, you simply import the specific extractor class from `skystream-extractors` and use it.
 
 ```javascript
+import { MixDrop, StreamTape } from 'skystream-extractors';
+
 async function loadStreams(url, cb) {
     // 1. Scrape your site to find the embedded video host URL
-    const videoHostUrl = await scrapeEmbedUrl(url); // e.g. "https://mixdrop.co/e/xyz123"
+    const videoHostUrl = await scrapeEmbedUrl(url); 
+    let streams = [];
 
-    // 2. Pass it to the built-in extractor engine
+    // 2. Identify the host and pass it to the correct extractor class
     try {
-        const streams = await loadExtractor(videoHostUrl);
+        if (videoHostUrl.includes('mixdrop.co')) {
+            const extractor = new MixDrop();
+            streams = await extractor.getUrl(videoHostUrl);
+        } else if (videoHostUrl.includes('streamtape.com')) {
+            const extractor = new StreamTape();
+            streams = await extractor.getUrl(videoHostUrl);
+        }
         
         // streams is an array of IExtractorLink / StreamResult objects
-        if (streams && streams.length > 0) {
+        if (streams.length > 0) {
             return cb({ success: true, data: streams });
         }
     } catch (e) {
@@ -277,6 +288,8 @@ async function loadStreams(url, cb) {
     
     cb({ success: true, data: [] });
 }
+
+globalThis.loadStreams = loadStreams;
 ```
 
 > [!TIP]

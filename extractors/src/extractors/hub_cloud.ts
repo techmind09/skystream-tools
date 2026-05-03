@@ -1,8 +1,7 @@
 import { ExtractorApi, IExtractorLink } from '../core/extractor_api';
 import { qualityFromString } from '../core/qualities';
-import { registerExtractor } from '../core/registry';
 
-class HubCloud extends ExtractorApi {
+export class HubCloud extends ExtractorApi {
   name = 'HubCloud';
   mainUrl = 'https://hubcloud.club';
   requiresReferer = false;
@@ -49,5 +48,3 @@ class HubCloud extends ExtractorApi {
     return results;
   }
 }
-
-registerExtractor(new HubCloud());

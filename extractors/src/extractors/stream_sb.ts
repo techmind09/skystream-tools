@@ -1,8 +1,7 @@
 import { ExtractorApi, IExtractorLink } from '../core/extractor_api';
-import { registerExtractor } from '../core/registry';
 import { M3u8Helper } from '../utils/m3u8_helper';
 
-class StreamSb extends ExtractorApi {
+export class StreamSb extends ExtractorApi {
   name = 'StreamSB';
   mainUrl = 'https://streamsb.com';
   requiresReferer = false;
@@ -20,5 +19,3 @@ class StreamSb extends ExtractorApi {
     return [];
   }
 }
-
-registerExtractor(new StreamSb());

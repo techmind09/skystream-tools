@@ -1,9 +1,8 @@
 import { ExtractorApi, IExtractorLink } from '../core/extractor_api';
 import { Qualities } from '../core/qualities';
-import { registerExtractor } from '../core/registry';
 import { JsUnpacker } from '../utils/js_unpacker';
 
-class MixDrop extends ExtractorApi {
+export class MixDrop extends ExtractorApi {
   name = 'MixDrop';
   mainUrl = 'https://mixdrop.co';
   requiresReferer = false;
@@ -31,5 +30,3 @@ class MixDrop extends ExtractorApi {
     }];
   }
 }
-
-registerExtractor(new MixDrop());
