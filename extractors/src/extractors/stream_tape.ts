@@ -1,5 +1,6 @@
 import { ExtractorApi, IExtractorLink } from '../core/extractor_api';
 import { Qualities } from '../core/qualities';
+import vm from 'vm'; 
 
 export class StreamTape extends ExtractorApi {
   name = 'StreamTape';
@@ -7,40 +8,36 @@ export class StreamTape extends ExtractorApi {
   requiresReferer = false;
 
   async getUrl(url: string, referer?: string): Promise<IExtractorLink[]> {
-    const res = await http_get(url);
+    // 1. Header ke saath request karein
+    const res = await http_get(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' }
+    });
+
     if (res.status !== 200) return [];
 
-    // Use our native parse_html bridge to find the element
-    const robotLinkElements = await parse_html(res.body, '#norobotlink', 'innerHTML');
-    if (!robotLinkElements || robotLinkElements.length === 0) return [];
-
-    const innerHtml = robotLinkElements[0].html;
+    // 2. Streamtape ka naya JS logic pakdein
+    const scriptMatch = /document\.getElementById\(['"]robotlink['"]\)\.innerHTML\s*=\s*(.*)/.exec(res.body);
     
-    // Usually it looks like: document.getElementById('norobotlink').innerHTML = 'some_url_part' + 'some_other_part';
-    // StreamTape does string concatenation in the JS. Let's do a basic regex to extract the parts.
-    const part1Match = /'([^']+)'/.exec(innerHtml) || /"([^"]+)"/.exec(innerHtml);
-    const part2Match = /innerHTML\s*=\s*['"](.*?)['"]\s*\+\s*\(['"](.*?)['"]/.exec(res.body);
+    if (scriptMatch) {
+        try {
+            const sandbox = { document: { getElementById: () => ({ innerHTML: '' }) } };
+            vm.createContext(sandbox);
+            vm.runInContext(`var result = ${scriptMatch[1]}`, sandbox);
+            
+            const videoUrl = 'https:' + (sandbox as any).result + '&stream=1';
 
-    let videoUrl = '';
-    if (part2Match) {
-        videoUrl = `https:${part2Match[1]}${part2Match[2]}`;
-    } else if (part1Match) {
-        // Fallback
-        videoUrl = `https:${part1Match[1]}`;
+            return [{
+                name: this.name,
+                source: this.name,
+                url: videoUrl,
+                quality: Qualities.Unknown,
+                type: 'video',
+                headers: { Referer: url }
+            }];
+        } catch (e) {
+            console.error("Extraction error:", e);
+        }
     }
-
-    if (!videoUrl || videoUrl === 'https:') return [];
-
-    // The streamtape URL often contains a token that needs to be appended
-    const finalUrl = videoUrl.replace(/&amp;/g, '&');
-
-    return [{
-      name: this.name,
-      source: this.name,
-      url: finalUrl,
-      quality: Qualities.Unknown,
-      type: 'video',
-      headers: { Referer: this.mainUrl }
-    }];
+    return [];
   }
 }
